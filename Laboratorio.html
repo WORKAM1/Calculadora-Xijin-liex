@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="pageTitle">Cálculo de Diluciones</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            display: flex;
+            background-color: #f5f5f5;
+        }
+        #sidebar {
+            width: 300px;
+            background: #ffffff;
+            padding: 20px;
+            border-right: 1px solid #ccc;
+            height: 100vh;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+        }
+        #main-content {
+            flex-grow: 1;
+            padding: 20px;
+            background-color: #ffffff;
+        }
+        h1, h2, label {
+            color: #333;
+        }
+        form, label, input, select, button {
+            margin-top: 10px;
+            display: block;
+            padding: 10px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .output, .recommendation {
+            margin-top: 10px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            background: #ffffff;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        select {
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div id="sidebar">
+        <h2 id="gestionTitulo">Gestión de Puntos de Curva</h2>
+        <button id="toggleCurveManagement">Desactivar Gestión</button>
+        <div id="curveManagement">
+            <label for="elementoCurva" id="labelElementoCurva">Elemento:</label>
+            <select id="elementoCurva">
+                <option value="litio">Litio</option>
+                <option value="sodio">Sodio</option>
+                <option value="potasio">Potasio</option>
+                <option value="icp">ICP</option>
+            </select>
+            <div id="patronesContainer"></div>
+            <button id="calcularPuntoMedio">Calcular Punto Medio</button>
+            <p id="curveResult"></p>
+        </div>
+    </div>
+    <div id="main-content">
+        <header>
+            <h1 id="title">Cálculo de Diluciones</h1>
+            <select id="languageSelector">
+                <option value="es" selected>Español</option>
+                <option value="en">English</option>
+                <option value="zh">中文</option>
+            </select>
+        </header>
+        <form id="calculoForm">
+            <label for="elemento" id="labelElemento">Seleccionar elemento:</label>
+            <select id="elemento">
+                <option value="litio">Litio</option>
+                <option value="sodio">Sodio</option>
+                <option value="potasio">Potasio</option>
+                <option value="icp">ICP</option>
+            </select>
+            <label for="concentracionInicial">Concentración inicial:</label>
+            <input type="number" id="concentracionInicial" placeholder="Ingrese concentración">
+            <label for="factorDilucion">Factor de dilución (por defecto 50):</label>
+            <input type="number" id="factorDilucion" value="50">
+            <button type="submit">Calcular Diluciones</button>
+        </form>
+        <div id="resultado"></div>
+        <div id="recommendations"></div>
+    </div>
+    <script>
+        const defaultValues = { litio: 2.5, sodio: 7.5, potasio: 5, icp: 15 };
+        const numPatrones = { litio: 5, sodio: 5, potasio: 5, icp: 7 };
+        let curveManagementActive = true;
+
+        function updatePatronesInputs(elemento) {
+            const container = document.getElementById("patronesContainer");
+            container.innerHTML = "";
+            if (!curveManagementActive) return;
+            const numInputs = numPatrones[elemento];
+            for (let i = 0; i < numInputs; i++) {
+                const input = document.createElement("input");
+                input.type = "number";
+                input.classList.add("curve-point");
+                input.placeholder = `Punto ${i + 1}`;
+                container.appendChild(input);
+            }
+        }
+
+        document.getElementById("toggleCurveManagement").addEventListener("click", () => {
+            curveManagementActive = !curveManagementActive;
+            document.getElementById("curveManagement").style.display = curveManagementActive ? "block" : "none";
+            document.getElementById("toggleCurveManagement").innerText = curveManagementActive ? "Desactivar Gestión" : "Activar Gestión";
+        });
+
+        document.getElementById("elementoCurva").addEventListener("change", (e) => {
+            updatePatronesInputs(e.target.value);
+        });
+
+        document.getElementById("calcularPuntoMedio").addEventListener("click", () => {
+            if (!curveManagementActive) return;
+            const inputs = document.querySelectorAll(".curve-point");
+            const values = Array.from(inputs).map(input => parseFloat(input.value)).filter(value => !isNaN(value));
+            if (values.length === 0) {
+                alert("Por favor, ingrese valores válidos.");
+                return;
+            }
+            const average = values.reduce((a, b) => a + b, 0) / values.length;
+            document.getElementById("curveResult").innerText = `Punto Medio: ${average.toFixed(2)}`;
+        });
+
+        document.getElementById("calculoForm").addEventListener("submit", (e) => {
+            e.preventDefault();
+
+            const elemento = document.getElementById("elemento").value;
+            const concentracion = parseFloat(document.getElementById("concentracionInicial").value);
+            const factor = parseFloat(document.getElementById("factorDilucion").value);
+            let puntoMedio;
+
+            if (curveManagementActive) {
+                const calculated = document.getElementById("curveResult").innerText.split(": ")[1];
+                puntoMedio = parseFloat(calculated) || defaultValues[elemento];
+            } else {
+                puntoMedio = defaultValues[elemento];
+            }
+
+            if (isNaN(concentracion) || isNaN(factor)) {
+                alert("Por favor, ingrese valores válidos.");
+                return;
+            }
+
+            const dilucionInicial = concentracion / factor;
+            const matraces = [10, 25, 50, 100, 250];
+            const recomendaciones = matraces.map(matraz => ({
+                matraz,
+                volumen: (matraz / (dilucionInicial / puntoMedio)).toFixed(4),
+                factor: (matraz / (matraz / (dilucionInicial / puntoMedio))).toFixed(6),
+            }));
+
+            document.getElementById("resultado").innerHTML = `
+                <p>Punto Medio: ${puntoMedio}</p>
+                <p>Dilución Inicial: ${dilucionInicial.toFixed(4)}</p>
+            `;
+            document.getElementById("recommendations").innerHTML = recomendaciones.map((rec, i) => `
+                <div class="recommendation">
+                    <p>Opción ${i + 1}: Matraz ${rec.matraz} mL - Volumen ${rec.volumen} mL - Factor ${rec.factor}</p>
+                </div>
+            `).join("");
+        });
+
+        // Inicialización
+        updatePatronesInputs("litio");
+    </script>
+</body>
+</html>
